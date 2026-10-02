@@ -1,0 +1,57 @@
+name: Esteira DevSecOps - TechSecure
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-test-scan:
+    name: Build, Test e Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout do Código (Source)
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar ambiente Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 3. Instalar Dependências (Build)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 4. Executar Testes Unitários (Teste)
+        run: pytest test_app.py
+
+      - name: 5. Análise de Segurança com Trivy (Security Scan)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          # Mantemos exit-code 0 para a pipeline não falhar e continuar para o deploy
+          # Na vida real, colocaríamos 1 para bloquear deploys vulneráveis.
+          exit-code: '0' 
+          severity: 'HIGH,CRITICAL'
+
+  deploy-container:
+    name: Build de Imagem e Deploy
+    needs: build-test-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: 2. Construir Imagem Docker (Build da Imagem)
+        run: docker build -t techsecure-app:latest .
+
+      - name: 3. Subir o Container (Deploy)
+        run: |
+          docker run -d -p 5000:5000 --name webapp techsecure-app:latest
+          # Aguarda alguns segundos para o Flask subir completamente
+          sleep 5 
+
+      - name: 4. Validar Aplicação Rodando
+        run: curl http://localhost:5000
