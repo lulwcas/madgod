@@ -31,8 +31,6 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
-          # Adiciona trivyignores e forca analise de vulnerabilidades no requirements.txt
-          trivyignores: '.trivyignore'
           scanners: 'vuln'
           exit-code: '0' 
           severity: 'HIGH,CRITICAL'
